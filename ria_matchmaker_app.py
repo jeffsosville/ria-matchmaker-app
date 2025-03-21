@@ -74,21 +74,24 @@ if st.button("Find Matches"):
         (ria_data["services"].str.contains(user_input["interest"], case=False, na=False))
     ]
 
-    filtered_data["Match Score"] = filtered_data.apply(lambda row: score_firm(row, user_input), axis=1)
-    filtered_data["Summary"] = filtered_data.apply(lambda row: (
-        f"{row['firm_name']} is based in {row['state']}, offering {row['services']}. "
-        f"They {'do' if row['performance_fee'] else 'do not'} charge performance-based fees and "
-        f"serve {'high-net-worth' if row['client_hnw'] else 'institutional' if row['client_institutional'] else 'general'} clients."
-    ), axis=1)
+    if not filtered_data.empty:
+        filtered_data["Match Score"] = filtered_data.apply(lambda row: score_firm(row, user_input), axis=1)
+        filtered_data["Summary"] = filtered_data.apply(lambda row: (
+            f"{row['firm_name']} is based in {row['state']}, offering {row['services']}. "
+            f"They {'do' if row['performance_fee'] else 'do not'} charge performance-based fees and "
+            f"serve {'high-net-worth' if row['client_hnw'] else 'institutional' if row['client_institutional'] else 'general'} clients."
+        ), axis=1)
 
-    results = filtered_data.sort_values(by="Match Score", ascending=False)[[
-        "firm_name", "Match Score", "Summary", "email", "phone"
-    ]]
+        results = filtered_data.sort_values(by="Match Score", ascending=False)[[
+            "firm_name", "Match Score", "Summary", "email", "phone"
+        ]]
 
-    st.subheader("Your Matches")
-    for _, row in results.iterrows():
-        st.markdown(f"**{row['firm_name']}** — Match Score: {row['Match Score']}%")
-        st.write(row['Summary'])
-        st.markdown(f"📧 **Email**: {row.get('email', 'N/A')}")
-        st.markdown(f"📞 **Phone**: {row.get('phone', 'N/A')}")
-        st.markdown("---")
+        st.subheader("Your Matches")
+        for _, row in results.iterrows():
+            st.markdown(f"**{row['firm_name']}** — Match Score: {row['Match Score']}%")
+            st.write(row['Summary'])
+            st.markdown(f"\ud83d\udce7 **Email**: {row.get('email', 'N/A')}")
+            st.markdown(f"\ud83d\udcde **Phone**: {row.get('phone', 'N/A')}")
+            st.markdown("---")
+    else:
+        st.warning("No matches found. Try adjusting your filters.")
