@@ -36,7 +36,7 @@ st.title("RIA Matchmaker")
 st.caption(f"{len(ria_data)} investment advisers loaded from SEC data.")
 
 aum_input = st.number_input("Minimum AUM ($ millions)", value=100)
-state_input = st.selectbox("Preferred State", ["All States"] + sorted(ria_data["state"].dropna().unique()))
+state_input = st.selectbox("Preferred State", [""] + sorted(ria_data["state"].dropna().unique()))
 fee_preference = st.checkbox("Require performance-based fee model?")
 client_type = st.selectbox("You are a:", ["hnw", "institutional"])
 interest_input = st.text_input("What services are you looking for?", "estate planning")
@@ -45,7 +45,7 @@ def score_firm(firm, user):
     score = 0
     if firm["aum_millions"] >= user["min_aum"]:
         score += 25
-    if user["state"] == "All States" or user["state"] == firm["state"]:
+    if user["state"] == firm["state"]:
         score += 15
     if user["performance_fee_preference"] == firm["performance_fee"]:
         score += 15
@@ -66,32 +66,21 @@ user_input = {
 }
 
 if st.button("Find Matches"):
-    filtered_data = ria_data[
-        (ria_data["aum_millions"] >= user_input["min_aum"]) &
-        ((user_input["state"] == "All States") | (ria_data["state"] == user_input["state"])) &
-        ((user_input["performance_fee_preference"] == ria_data["performance_fee"]) | (not user_input["performance_fee_preference"])) &
-        ((user_input["client_type"] == "hnw" and ria_data["client_hnw"]) | (user_input["client_type"] == "institutional" and ria_data["client_institutional"])) &
-        (ria_data["services"].str.contains(user_input["interest"], case=False, na=False))
-    ]
+    ria_data["Match Score"] = ria_data.apply(lambda row: score_firm(row, user_input), axis=1)
+    ria_data["Summary"] = ria_data.apply(lambda row: (
+        f"{row['firm_name']} is based in {row['state']}, offering {row['services']}. "
+        f"They {'do' if row['performance_fee'] else 'do not'} charge performance-based fees and "
+        f"serve {'high-net-worth' if row['client_hnw'] else 'institutional' if row['client_institutional'] else 'general'} clients."
+    ), axis=1)
 
-    if not filtered_data.empty:
-        filtered_data["Match Score"] = filtered_data.apply(lambda row: score_firm(row, user_input), axis=1)
-        filtered_data["Summary"] = filtered_data.apply(lambda row: (
-            f"{row['firm_name']} is based in {row['state']}, offering {row['services']}. "
-            f"They {'do' if row['performance_fee'] else 'do not'} charge performance-based fees and "
-            f"serve {'high-net-worth' if row['client_hnw'] else 'institutional' if row['client_institutional'] else 'general'} clients."
-        ), axis=1)
+    results = ria_data.sort_values(by="Match Score", ascending=False)[[
+        "firm_name", "Match Score", "Summary", "email", "phone"
+    ]]
 
-        results = filtered_data.sort_values(by="Match Score", ascending=False)[[
-            "firm_name", "Match Score", "Summary", "email", "phone"
-        ]]
-
-        st.subheader("Your Matches")
-        for _, row in results.iterrows():
-            st.markdown(f"**{row['firm_name']}** — Match Score: {row['Match Score']}%")
-            st.write(row['Summary'])
-            st.markdown(f"\ud83d\udce7 **Email**: {row.get('email', 'N/A')}")
-            st.markdown(f"\ud83d\udcde **Phone**: {row.get('phone', 'N/A')}")
-            st.markdown("---")
-    else:
-        st.warning("No matches found. Try adjusting your filters.")
+    st.subheader("Your Matches")
+    for _, row in results.iterrows():
+        st.markdown(f"**{row['firm_name']}** — Match Score: {row['Match Score']}%")
+        st.write(row['Summary'])
+        st.markdown(f"📧 **Email**: {row.get('email', 'N/A')}")
+        st.markdown(f"📞 **Phone**: {row.get('phone', 'N/A')}")
+        st.markdown("---")
