@@ -4,7 +4,7 @@ import pandas as pd
 # Load the combined dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("ria_data_with_bonus_firms.csv")
+    df = pd.read_csv("ria_data_with_contacts.csv")
     return df[df["firm_name"].notnull()]
 
 ria_data = load_data()
