@@ -39,6 +39,7 @@ if view == "Analytics Dashboard":
     ax.axis("equal")
     st.pyplot(fig)
 
+
 else:
     aum_input = st.number_input("Minimum AUM ($ millions)", value=0)
     state_input = st.selectbox("Preferred State", ["Any"] + sorted(ria_data["state"].dropna().unique()))
@@ -97,3 +98,9 @@ else:
                     st.markdown("---")
             else:
                 st.warning("No matches found. Try adjusting your filters.")
+
+
+
+
+
+
